@@ -303,7 +303,5 @@ with st.form("update_name"):
         st.success("Profile updated.")
         st.rerun()
 
-try:
-    st.page_link("pages/2_Workshop_Registration.py", label="📝 Workshop Registration")
-except Exception:
-    st.markdown("### [📝 Workshop Registration](pages/2_Workshop_Registration.py)")
+st.page_link("pages/2_Workshop Registration.py", label="Go to Workshop Registration", icon="📝")
+
