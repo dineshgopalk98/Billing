@@ -274,7 +274,7 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB, spacer1 = st.columns([1, 1, 3])
+colA, colB, spacer1 = st.columns([1, 1, 2])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
