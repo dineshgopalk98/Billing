@@ -36,7 +36,15 @@ def get_gspread_client():
 
 def get_user_sheet():
     client = get_gspread_client()
-    return client.open(SHEET_NAME).sheet1
+    try:
+        return client.open(SHEET_NAME).sheet1
+    except gspread.SpreadsheetNotFound:
+        # Create the sheet if it doesn't exist
+        sh = client.create(SHEET_NAME)
+        sh.share(st.secrets["gcp_service_account"]["client_email"], perm_type='user', role='writer')
+        worksheet = sh.sheet1
+        worksheet.append_row(["Email", "Name", "Picture"])  # Add headers
+        return worksheet
 
 def load_users():
     sheet = get_user_sheet()
