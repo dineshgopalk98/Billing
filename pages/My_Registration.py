@@ -81,7 +81,6 @@ st.markdown(f"**Contact:** {rec['Contact']}")
 st.markdown(f"**Shirt Needed:** {rec['ShirtNeeded']}")
 st.markdown(f"**Equipment Choice:** {rec['EquipmentChoice']}")
 st.markdown(f"**Pending Amount:** ₹{rec['PendingAmount']}")
-st.caption(f"Last updated: {rec['Timestamp']}")
 
 st.divider()
 
