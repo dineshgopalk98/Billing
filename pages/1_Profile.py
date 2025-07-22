@@ -277,7 +277,7 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB, spacer1 = st.columns([1, 4, 4])
+colA, colB, spacer1, spacer2 = st.columns([1,3,3,1])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
@@ -295,6 +295,8 @@ with colB:
     )
 
 with spacer1:
+    st.write("")
+with spacer2:
     # Tiny pencil popover trigger
     with st.popover("✏", use_container_width=True):
         st.caption("Edit profile")  # small heading in the popover
