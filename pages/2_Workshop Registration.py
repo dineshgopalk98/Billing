@@ -172,7 +172,7 @@ pref_equip = latest_reg["EquipmentChoice"] if latest_reg is not None else "Retur
 # ------------------------------------------------------------------
 with st.form("registration_form"):
     name_input = st.text_input("Full Name", value="")
-    mail_input = st.text_input("Email",value=user_email)
+    mail_input = st.text_input("Email",value=user_email, disabled=True)
 
     contact = st.text_input("Contact Number", value="")
     shirt_needed = st.selectbox("Shirt Needed?", ["Yes", "No"], index=(0 if pref_shirt == "Yes" else 1))
