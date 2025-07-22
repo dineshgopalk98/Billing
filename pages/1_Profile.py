@@ -291,7 +291,7 @@ with colB:
     )
 with spacer1:
     st.write("")
-    with st.popover("✏ Edit Profile Details"):
+    with st.popover("Edit Profile Details"):
         new_name = st.text_input("Name", value=user_name, key="edit_name")
         uploaded_pic = st.file_uploader("Upload Profile Picture", type=["jpg", "jpeg", "png"])
 
