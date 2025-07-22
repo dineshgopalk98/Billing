@@ -245,7 +245,6 @@ with colB:
     st.markdown(f"**Email:** {st.session_state.user_email}")
 
 # Add a clickable link to Workshop Registration
-st.page_link("pages/2_Workshop Registration.py", label="Go to Workshop Registration", icon="📝")
 
 
 st.divider()
@@ -259,6 +258,9 @@ with st.form("update_name"):
         save_user(st.session_state.user_email, new_name, user_pic)
         st.success("Profile updated.")
         st.rerun()
+
+st.page_link("pages/2_Workshop Registration.py", label="Go to Workshop Registration", icon="📝")
+
 
 # Logout button
 if st.button("Logout"):
