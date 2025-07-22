@@ -13,3 +13,9 @@ port = 8501
 
 [browser]
 gatherUsageStats = false
+
+[server]
+runOnSave = false
+
+[client]
+toolbarMode = "minimal"   # Hides "View source", "Rerun", "Settings"
