@@ -160,10 +160,12 @@ with st.form("registration_form"):
     equipment_choice = st.selectbox("Equipments Return or Buy?", ["Return", "Buy"],
                                     index=(1 if pref_equip == "Buy" else 0))
 
-    if equipment_choice == "Buy":
-        st.warning(f"You will need to pay ₹{EQUIP_BUY_AMOUNT} during the event for the equipment.")
-    else:
-        st.caption("Bring the equipment back after the event.")
+    equipment = st.selectbox("Equipments return or buy", ["Return", "Buy"])
+
+    # Show a popup notification when 'Buy' is selected
+    if equipment == "Buy":
+        st.toast("⚠ You will need to pay ₹200 during the event for the equipment.", icon="💰")
+
 
     submitted = st.form_submit_button("Register" if existing_reg is None else "Update Registration")
 
