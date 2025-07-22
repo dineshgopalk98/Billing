@@ -177,12 +177,12 @@ with st.form("update_name"):
     if submitted:
         save_user(ss.user_email, new_name, user_pic)
         st.success("Profile updated.")
-        st.experimental_rerun()
+        st.rerun()
 
 # Logout
 if st.button("Logout"):
     ss.logged_in = False
     ss.user_email = None
-    st.experimental_rerun()
+    st.rerun()
 
 
