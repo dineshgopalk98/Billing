@@ -223,7 +223,6 @@ if "oauth_state" not in st.session_state:
 # ------------------------------------------------------------------
 # MAIN UI
 # ------------------------------------------------------------------
-st.title("👤 Profile / Login")
 
 # Handle Google OAuth return (if any)
 handle_oauth_callback()
