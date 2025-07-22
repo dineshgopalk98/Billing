@@ -190,10 +190,10 @@ with st.form("registration_form"):
             st.error("Please enter your contact number.")
         else:
             # Duplicate check
-            if reg_exists_exact(user_name, user_email, contact, shirt_needed, equipment_choice):
+            if reg_exists_exact(name_input.strip(), user_email, contact, shirt_needed, equipment_choice):
                 st.error("User with same details already exists.")
             else:
-                upsert_registration(name_input.strip(), user_email, contact.strip(), shirt_needed, equipment_choice)
+                append_registration(name_input.strip(), user_email, contact.strip(), shirt_needed, equipment_choice)
                 st.success("Registration saved!")
                 if equipment_choice == "Buy":
                     st.info(f"Please keep ₹{EQUIP_BUY_AMOUNT} ready during the event.")
