@@ -245,7 +245,15 @@ with colB:
     st.markdown(f"**Email:** {st.session_state.user_email}")
 
 # Add a clickable link to Workshop Registration
-st.markdown("### [📝 Workshop Registration](pages/Workshop Registration.py)")
+import streamlit as st
+
+st.markdown("""
+    <div style='padding: 15px; border-radius: 10px; background-color: #262730; text-align: center;'>
+        <a href='pages/Workshop Registration.py' target='_self' style='text-decoration: none; color: white; font-size: 18px;'>
+            📝 <b>Go to Workshop Registration</b>
+        </a>
+    </div>
+""", unsafe_allow_html=True)
 
 st.divider()
 
