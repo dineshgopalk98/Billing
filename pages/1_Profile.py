@@ -275,7 +275,7 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB, spacer1 = st.columns([1, 1, 6])
+colA, colB = st.columns([1, 3])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
@@ -284,8 +284,6 @@ with colA:
 with colB:
     st.markdown(f"### {user_name}")
     st.markdown(f"**Email:** {st.session_state.user_email}")
-with spacer1:
-    st.write("")
 
 # Navigation to Workshop Registration (internal page)
 # Use st.page_link if available; fallback markdown
