@@ -5,11 +5,9 @@ from google.oauth2 import service_account
 from datetime import datetime
 
 REG_SHEET_NAME = "Workshop_Registrations"
-EQUIP_BUY_AMOUNT = 200  # Keep consistent with Invoice.py
+EQUIP_BUY_AMOUNT = 200
 
-# ------------------------------------------------------------------
-# GSpread Helpers
-# ------------------------------------------------------------------
+# ---- GSpread -----------------------------------------------------
 def get_gspread_client():
     creds = service_account.Credentials.from_service_account_info(
         st.secrets["gcp_service_account"],
@@ -22,7 +20,7 @@ def get_gspread_client():
 
 def get_sheet():
     client = get_gspread_client()
-    sh = client.open(REG_SHEET_NAME)  # Will error if not shared
+    sh = client.open(REG_SHEET_NAME)
     return sh.sheet1
 
 def load_reg_df():
@@ -36,27 +34,44 @@ def load_reg_df():
         ])
     return df
 
-def get_user_reg(email):
+def get_user_regs(email):
     df = load_reg_df()
-    if df.empty or "Email" not in df.columns or email not in df["Email"].values:
-        return None, None
-    rec = df[df["Email"] == email].iloc[0]
-    # Find row
-    sheet = get_sheet()
-    cell = sheet.find(email)
-    return rec, cell.row
+    if df.empty or "Email" not in df.columns:
+        return pd.DataFrame(columns=df.columns)
+    return df[df["Email"] == email].copy()
 
-def update_reg(row, name, email, contact, shirt, equip):
+def find_row_for(email, contact, shirt, equip) -> int | None:
+    """Find first matching sheet row for the selected registration."""
+    sheet = get_sheet()
+    # naive strategy: scan all rows (small volume expected)
+    vals = sheet.get_all_values()  # list of lists
+    # header row at index 0
+    for i, row in enumerate(vals[1:], start=2):
+        # row -> [Name, Email, Contact, ShirtNeeded, EquipmentChoice, Pending, Timestamp]
+        if len(row) < 5:
+            continue
+        r_email = row[1].strip().lower()
+        r_contact = row[2].strip()
+        r_shirt = row[3].strip().lower()
+        r_equip = row[4].strip().lower()
+        if (
+            r_email == email.strip().lower() and
+            r_contact == str(contact).strip() and
+            r_shirt == shirt.strip().lower() and
+            r_equip == equip.strip().lower()
+        ):
+            return i  # 1-based sheet row
+    return None
+
+def update_reg(row_num, name, email, contact, shirt, equip):
     sheet = get_sheet()
     pending = EQUIP_BUY_AMOUNT if equip == "Buy" else 0
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.update(f"A{row}:G{row}", [[name, email, contact, shirt, equip, pending, ts]])
+    sheet.update(f"A{row_num}:G{row_num}", [[name, email, contact, shirt, equip, pending, ts]])
 
-# ------------------------------------------------------------------
-# Page UI
-# ------------------------------------------------------------------
-st.set_page_config(page_title="My Registration", page_icon="📄", layout="centered")
-st.title("📄 My Workshop Registration")
+# ---- PAGE --------------------------------------------------------
+st.set_page_config(page_title="My Registrations", page_icon="📄", layout="centered")
+st.title("📄 My Workshop Registrations")
 
 # Require login
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
@@ -64,66 +79,84 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.stop()
 
 email = st.session_state.user_email
-rec, row = get_user_reg(email)
+regs = get_user_regs(email)
 
-if rec is None:
-    st.info("No workshop registration found. Go to *Workshop Registration* page to register.")
+if regs.empty:
+    st.info("No workshop registrations found. Please register first.")
     try:
-        st.page_link("pages/2_Workshop Registration.py", label="🧾 Go to Workshop Registration")
+        st.page_link("pages/2_Workshop_Registration.py", label="🧾 Go to Workshop Registration")
     except Exception:
         pass
     st.stop()
 
-# ------------------------------------------------------------
-# Modern Card Layout
-# ------------------------------------------------------------
-with st.container():
+# Show all registrations as cards
+st.subheader("Your Registrations")
+for idx, row in regs.reset_index(drop=True).iterrows():
     st.markdown(
         f"""
         <div style="
-            background-color: #f9f9f9;
-            padding: 20px 25px;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        ">
-        <h3 style="color: #333; margin-bottom: 10px;">{rec['Name']}</h3>
-        <p><b>Email:</b> {rec['Email']}</p>
-        <p><b>Contact:</b> {rec['Contact']}</p>
-        <p><b>Shirt Needed:</b> {rec['ShirtNeeded']}</p>
-        <p><b>Equipment Choice:</b> {rec['EquipmentChoice']}</p>
-        <p><b>Pending Amount:</b> ₹{rec['PendingAmount']}</p>
+            background-color:#f9f9f9;
+            padding:16px;
+            margin-bottom:12px;
+            border-radius:12px;
+            box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+            <b>{row['Name']}</b><br>
+            Email: {row['Email']}<br>
+            Contact: {row['Contact']}<br>
+            Shirt Needed: {row['ShirtNeeded']}<br>
+            Equipment Choice: {row['EquipmentChoice']}<br>
+            Pending Amount: ₹{row['PendingAmount']}
         </div>
         """,
         unsafe_allow_html=True
     )
 
-# Edit Registration
-with st.expander("✏️ Edit my registration"):
-    with st.form("edit_reg"):
-        contact = st.text_input("Contact Number", value=str(rec["Contact"]))
-        shirt = st.selectbox(
-            "Shirt Needed?",
-            ["Yes", "No"],
-            index=(0 if rec["ShirtNeeded"] == "Yes" else 1),
-        )
-        equip = st.selectbox(
-            "Equipments Return or Buy?",
-            ["Return", "Buy"],
-            index=(1 if rec["EquipmentChoice"] == "Buy" else 0),
-        )
+st.divider()
 
-        if equip == "Buy":
-            st.toast(f"💰 You will need to pay ₹{EQUIP_BUY_AMOUNT} during the event.", icon="⚠")
+# ---- Edit a specific registration --------------------------------
+st.subheader("Edit a Registration")
 
-        save_btn = st.form_submit_button("💾 Save Changes", use_container_width=True)
-        if save_btn:
-            update_reg(row, rec["Name"], rec["Email"], contact.strip(), shirt, equip)
-            st.success("✅ Registration updated successfully!")
+# Build a label for each reg so user can pick which one to edit
+def reg_label(rec):
+    return f"{rec['Contact']} | Shirt:{rec['ShirtNeeded']} | Equip:{rec['EquipmentChoice']} | Pending:₹{rec['PendingAmount']}"
+
+regs_reset = regs.reset_index(drop=True)
+choice = st.selectbox(
+    "Select which registration to edit",
+    options=list(regs_reset.index),
+    format_func=lambda i: reg_label(regs_reset.iloc[i]),
+)
+
+rec = regs_reset.iloc[choice]
+
+with st.form("edit_reg"):
+    contact = st.text_input("Contact Number", value=str(rec["Contact"]))
+    shirt = st.selectbox(
+        "Shirt Needed?",
+        ["Yes", "No"],
+        index=(0 if rec["ShirtNeeded"] == "Yes" else 1),
+    )
+    equip = st.selectbox(
+        "Equipments Return or Buy?",
+        ["Return", "Buy"],
+        index=(1 if rec["EquipmentChoice"] == "Buy" else 0),
+    )
+
+    if equip == "Buy":
+        st.toast(f"💰 You will need to pay ₹{EQUIP_BUY_AMOUNT} during the event.", icon="⚠")
+
+    save_btn = st.form_submit_button("Save Changes", use_container_width=True)
+    if save_btn:
+        row_num = find_row_for(rec["Email"], rec["Contact"], rec["ShirtNeeded"], rec["EquipmentChoice"])
+        if row_num is None:
+            st.error("Could not locate this registration row in the sheet.")
+        else:
+            update_reg(row_num, rec["Name"], rec["Email"], contact.strip(), shirt, equip)
+            st.success("Registration updated.")
             st.rerun()
 
 # Back link
 try:
-    st.page_link("pages/2_Workshop Registration.py", label="⬅ Back to Workshop Registration")
+    st.page_link("pages/2_Workshop_Registration.py", label="⬅ Back to Workshop Registration")
 except Exception:
     pass
