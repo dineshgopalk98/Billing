@@ -249,7 +249,7 @@ import streamlit as st
 
 st.markdown("""
     <div style='padding: 15px; border-radius: 10px; background-color: #262730; text-align: center;'>
-        <a href='pages/Workshop Registration.py' target='_self' style='text-decoration: none; color: white; font-size: 18px;'>
+        <a href='pages/2_Workshop Registration.py' target='_self' style='text-decoration: none; color: white; font-size: 18px;'>
             📝 <b>Go to Workshop Registration</b>
         </a>
     </div>
