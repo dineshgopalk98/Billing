@@ -5,6 +5,8 @@ import secrets as pysecrets  # stdlib secrets
 import gspread
 from google.oauth2.service_account import Credentials
 import hmac, hashlib, base64
+from PIL import Image
+import io
 
 # ------------------------------------------------------------------
 # PAGE CONFIG
@@ -291,11 +293,19 @@ with spacer1:
     st.write("")
     with st.popover("✏ Edit Profile Details"):
         new_name = st.text_input("Name", value=user_name, key="edit_name")
-        new_contact = st.text_input("Contact", value=user_contact, key="edit_contact")
-        submitted = st.form_submit_button("Update Changes")
-        if submitted:
-            save_user(st.session_state.user_email, new_name, new_contact, user_pic)
-            st.success("Profile updated.")
+        uploaded_pic = st.file_uploader("Upload Profile Picture", type=["jpg", "jpeg", "png"])
+
+        if uploaded_pic:
+            image = Image.open(uploaded_pic)
+            # Convert image to bytes for session storage
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format="PNG")
+            st.session_state.user_pic = img_byte_arr.getvalue()
+            st.image(st.session_state.user_pic, width=100, caption="Preview")
+    
+        if st.button("Save Changes", key="save_changes"):
+            st.session_state.user_name = new_name
+            st.success("Profile updated successfully!")
             st.rerun()
 
 # Navigation to Workshop Registration (internal page)
