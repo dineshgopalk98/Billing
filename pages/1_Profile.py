@@ -243,9 +243,11 @@ handle_oauth_callback()
 # ------------------------------------------------------------------
 # HEADER ROW WITH LOGOUT BUTTON (top-right)
 # ------------------------------------------------------------------
-hdr_l, hdr_r = st.columns([5,3,0.5])
+hdr_l, spacer, hdr_r = st.columns([5,3,0.5])
 with hdr_l:
     st.title("👤 Profile")
+with spacer:
+    st.write("")
 with hdr_r:
     st.write("")
     if st.button("Logout", key="logout_button_top"):
