@@ -1,132 +1,120 @@
 import streamlit as st
 import pandas as pd
 import requests
-import secrets as pysecrets  # stdlib
+import secrets as pysecrets  # stdlib secrets
 import gspread
 from google.oauth2.service_account import Credentials
+import hmac, hashlib, base64
 
 # ------------------------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------------------------
-
-# Create two columns for title and logout button
-col1, col2 = st.columns([6, 1])  # Adjust ratio to align
-with col1:
-    st.title("👤 Profile / Login")
-
-with col2:
-    st.write("")  # For spacing
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.user_email = None
-        st.rerun()
-
-
-# Optional debug toggle (sidebar)
-DEBUG = st.sidebar.checkbox("Debug mode", False)
-
-def dlog(msg):
-    if DEBUG:
-        st.write(f"🔧 {msg}")
+st.set_page_config(page_title="Profile / Login", page_icon="👤", layout="centered")
 
 # ------------------------------------------------------------------
-# SECRETS (Google OAuth + Service Account)
+# CONFIG / SECRETS
 # ------------------------------------------------------------------
 CLIENT_ID = st.secrets["google"]["client_id"]
 CLIENT_SECRET = st.secrets["google"]["client_secret"]
-REDIRECT_URI = st.secrets["google"]["redirect_uri"]  # exact match to GCP OAuth config
+REDIRECT_URI = st.secrets["google"]["redirect_uri"]  # must match GCP OAuth
+APP_SIGNING_KEY = st.secrets["app"]["signing_key"].encode()  # bytes
 
-# Google OAuth endpoints
 AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 SCOPES = ["openid", "email", "profile"]
 
-# ------------------------------------------------------------------
-# GOOGLE SHEET CONFIG
-# ------------------------------------------------------------------
-# Exact name of your existing Sheet (case sensitive)
-SHEET_NAME = "Billing_Users"   # <-- make sure this matches the sheet name in Drive
+SHEET_NAME = "Billing_Users"  # case sensitive
 
 # ------------------------------------------------------------------
-# GOOGLE SHEETS HELPERS
+# SMALL UTILS
+# ------------------------------------------------------------------
+def sign_email(email: str) -> str:
+    """Return URL-safe HMAC signature for email."""
+    digest = hmac.new(APP_SIGNING_KEY, email.encode(), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(digest).decode().rstrip("=")
+
+def check_signature(email: str, token: str) -> bool:
+    """Constant-time check."""
+    expected = sign_email(email)
+    # pad token for base64 lengths? we trimmed =; so compare raw
+    return hmac.compare_digest(expected, token)
+
+def set_remember_me(email: str):
+    """Write email + signed token into URL query params so we can auto-login later."""
+    token = sign_email(email)
+    try:
+        st.query_params.update({"u": email, "t": token})
+    except Exception:
+        pass  # ignore if running older Streamlit
+
+def clear_remember_me():
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
+
+# ------------------------------------------------------------------
+# GOOGLE SHEETS
 # ------------------------------------------------------------------
 def get_gspread_client():
-    """Authorize gspread using service account from st.secrets."""
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
-        scopes=scopes,
+        st.secrets["gcp_service_account"], scopes=scopes
     )
     return gspread.authorize(creds)
 
+def _ensure_headers(sheet):
+    vals = sheet.get_all_values()
+    if not vals:
+        sheet.update("A1:C1", [["Email", "Name", "Picture"]])
+        return
+    hdr = (vals[0] + ["", "", ""])[:3]
+    if hdr != ["Email", "Name", "Picture"]:
+        sheet.update("A1:C1", [["Email", "Name", "Picture"]])
+
 def get_user_sheet():
-    """Open existing Billing_Users sheet by title. Fail clearly if missing."""
     client = get_gspread_client()
     try:
-        sh = client.open(SHEET_NAME)  # requires sheet shared w/ service account
-    except gspread.SpreadsheetNotFound as e:
+        sh = client.open(SHEET_NAME)
+    except gspread.SpreadsheetNotFound:
         st.error(
             f"Google Sheet '{SHEET_NAME}' not found or not shared with the service "
-            "account. Please create it in Drive and share with:\n\n"
-            f"`{st.secrets['gcp_service_account']['client_email']}` (Editor)."
+            f"account:\n\n`{st.secrets['gcp_service_account']['client_email']}` (Editor)."
         )
         st.stop()
-    sheet = sh.sheet1  # use first worksheet
+    sheet = sh.sheet1
     _ensure_headers(sheet)
     return sheet
 
-def _ensure_headers(sheet):
-    """Ensure first row has Email | Name | Picture."""
-    # get_all_values() returns list of rows; empty if sheet blank
-    vals = sheet.get_all_values()
-    if not vals:
-        dlog("Sheet empty; writing headers.")
-        sheet.update("A1:C1", [["Email", "Name", "Picture"]])
-        return
-    first = vals[0]
-    # pad to length 3
-    first = (first + ["", "", ""])[:3]
-    if first[0] != "Email" or first[1] != "Name" or first[2] != "Picture":
-        dlog("Sheet missing headers; rewriting header row.")
-        sheet.update("A1:C1", [["Email", "Name", "Picture"]])
-
+@st.cache_data(ttl=60)
 def load_users():
-    """Return DataFrame of users. Always has Email/Name/Picture columns."""
     sheet = get_user_sheet()
-    records = sheet.get_all_records()  # uses row1 headers
+    records = sheet.get_all_records()
     df = pd.DataFrame(records)
     if df.empty:
         df = pd.DataFrame(columns=["Email", "Name", "Picture"])
     return df
 
 def save_user(email, name, picture_url=None):
-    """Insert or update a user in the sheet."""
     sheet = get_user_sheet()
     df = load_users()
-    if df.empty or "Email" not in df.columns:
-        dlog("No user rows yet; appending first user.")
+    if df.empty or "Email" not in df.columns or email not in df["Email"].values:
         sheet.append_row([email, name, picture_url])
-        return
-
-    if email not in df["Email"].values:
-        dlog(f"Appending new user {email}.")
-        sheet.append_row([email, name, picture_url])
+        load_users.clear()  # invalidate cache
     else:
-        dlog(f"Updating existing user {email}.")
         cell = sheet.find(email)
-        # Update name (col 2) + picture (col 3)
         sheet.update_cell(cell.row, 2, name)
         sheet.update_cell(cell.row, 3, picture_url or "")
+        load_users.clear()
 
 # ------------------------------------------------------------------
-# OAUTH HELPERS
+# GOOGLE OAUTH HELPERS
 # ------------------------------------------------------------------
 def build_auth_url():
-    """Return Google OAuth authorization URL."""
     state_token = pysecrets.token_urlsafe(16)
     st.session_state.oauth_state = state_token
     from urllib.parse import urlencode
@@ -137,11 +125,9 @@ def build_auth_url():
         "redirect_uri": REDIRECT_URI,
         "state": state_token,
         "access_type": "offline",
-        "prompt": "select_account",
+        "prompt": "select_account",  # show account picker
     }
-    url = f"{AUTH_BASE}?{urlencode(params)}"
-    dlog(f"Auth URL built: {url}")
-    return url
+    return f"{AUTH_BASE}?{urlencode(params)}"
 
 def exchange_code_for_tokens(code):
     data = {
@@ -162,53 +148,78 @@ def fetch_userinfo(access_token):
     return resp.json()
 
 def handle_oauth_callback():
-    """If we're returning from Google OAuth, complete login and persist user."""
-    params = st.query_params.to_dict() if hasattr(st, "query_params") else st.experimental_get_query_params()
-    if not params:
-        return
+    """If returning from Google, complete the login."""
+    params = (
+        st.query_params.to_dict()
+        if hasattr(st, "query_params")
+        else st.experimental_get_query_params()
+    )
     code = params.get("code")
     state = params.get("state")
     if isinstance(code, list): code = code[0]
     if isinstance(state, list): state = state[0]
     if not code:
         return
-
-    dlog(f"OAuth callback detected. state={state}, code={code[:6]}...")
-
+    # state check
     if st.session_state.oauth_state and state != st.session_state.oauth_state:
-        st.error("OAuth state mismatch. Please try signing in again.")
+        st.error("OAuth state mismatch. Please try again.")
         return
+    # token exchange
     try:
         token_data = exchange_code_for_tokens(code)
         access_token = token_data.get("access_token")
         if not access_token:
-            st.error("No access token returned from Google.")
+            st.error("No access token from Google.")
             return
         userinfo = fetch_userinfo(access_token)
     except Exception as e:
         st.error(f"OAuth error: {e}")
         return
-
     email = userinfo.get("email")
     name = userinfo.get("name", email or "Unknown User")
     picture = userinfo.get("picture")
 
-    dlog(f"Userinfo: email={email}, name={name}")
-
-    # Persist user in Google Sheet
+    # persist to sheet
     save_user(email, name, picture)
 
-    # Mark logged in
+    # set session + remember token
     st.session_state.logged_in = True
     st.session_state.user_email = email
+    set_remember_me(email)  # <-- persists in URL
 
-    # Clear params so we don't reprocess on rerun
+    # clear OAuth params so they don't re-trigger
     try:
-        st.query_params.clear()
+        st.query_params.update({"u": email, "t": sign_email(email)})
+        st.query_params.pop("code", None)
+        st.query_params.pop("state", None)
     except Exception:
         pass
 
     st.success(f"Logged in as {name}")
+
+# ------------------------------------------------------------------
+# AUTO-LOGIN FROM SIGNED QUERY PARAMS
+# ------------------------------------------------------------------
+def try_auto_login_from_query():
+    """If ?u=email&t=token present and valid, mark logged_in without OAuth."""
+    params = (
+        st.query_params.to_dict()
+        if hasattr(st, "query_params")
+        else st.experimental_get_query_params()
+    )
+    email = params.get("u")
+    token = params.get("t")
+    if isinstance(email, list): email = email[0]
+    if isinstance(token, list): token = token[0]
+    if not email or not token:
+        return
+    if not check_signature(email, token):
+        return
+    # confirm email actually exists in Billing_Users sheet
+    df = load_users()
+    if "Email" in df.columns and email in df["Email"].values:
+        st.session_state.logged_in = True
+        st.session_state.user_email = email
 
 # ------------------------------------------------------------------
 # SESSION INIT
@@ -220,21 +231,38 @@ if "user_email" not in st.session_state:
 if "oauth_state" not in st.session_state:
     st.session_state.oauth_state = None
 
-# ------------------------------------------------------------------
-# MAIN UI
-# ------------------------------------------------------------------
+# Try auto-login BEFORE rendering UI
+if not st.session_state.logged_in:
+    try_auto_login_from_query()
 
-# Handle Google OAuth return (if any)
+# Handle Google OAuth callback (may override the above)
 handle_oauth_callback()
 
-# Not logged in yet?
+# ------------------------------------------------------------------
+# HEADER ROW WITH LOGOUT BUTTON (top-right)
+# ------------------------------------------------------------------
+hdr_l, hdr_r = st.columns([8, 1])
+with hdr_l:
+    st.title("👤 Profile / Login")
+with hdr_r:
+    if st.button("Logout", key="logout_button_top"):
+        st.session_state.logged_in = False
+        st.session_state.user_email = None
+        clear_remember_me()
+        st.rerun()
+
+# ------------------------------------------------------------------
+# NOT LOGGED IN? SHOW LOGIN BUTTON
+# ------------------------------------------------------------------
 if not st.session_state.logged_in:
-    st.info("Sign in below to Register for the Workshop!")
+    st.info("Sign in below to access workshop registration and features.")
     auth_url = build_auth_url()
     st.link_button("🔐 Sign in with Google", auth_url, use_container_width=True)
     st.stop()
 
-# Logged-in view ---------------------------------------------------
+# ------------------------------------------------------------------
+# LOGGED-IN VIEW
+# ------------------------------------------------------------------
 df_users = load_users()
 row = df_users[df_users["Email"] == st.session_state.user_email]
 
@@ -245,23 +273,29 @@ else:
     user_name = st.session_state.user_email
     user_pic = None
 
-colA, colB = st.columns([1, 3])
+# Profile card
+colA, colB = st.columns([1, 1])
 with colA:
     if user_pic:
-        st.image(user_pic, width=96)
+        st.image(user_pic, width=100)
     else:
         st.write("🙂")
 with colB:
     st.markdown(f"### {user_name}")
     st.markdown(f"**Email:** {st.session_state.user_email}")
 
-# Add a clickable link to Workshop Registration
-
+# Navigation to Workshop Registration (internal page)
+# Use st.page_link if available; fallback markdown
+try:
+    st.page_link("pages/2_Workshop_Registration.py", label="📝 Workshop Registration")
+except Exception:
+    st.markdown("### [📝 Workshop Registration](pages/2_Workshop_Registration.py)")
 
 st.divider()
 
-
-# Update display name form
+# ------------------------------------------------------------------
+# NAME UPDATE FORM
+# ------------------------------------------------------------------
 with st.form("update_name"):
     new_name = st.text_input("Update display name", value=user_name or "")
     submitted = st.form_submit_button("Save")
@@ -269,6 +303,3 @@ with st.form("update_name"):
         save_user(st.session_state.user_email, new_name, user_pic)
         st.success("Profile updated.")
         st.rerun()
-
-st.page_link("pages/2_Workshop Registration.py", label="Go to Workshop Registration", icon="📝")
-
