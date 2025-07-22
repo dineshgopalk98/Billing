@@ -37,7 +37,7 @@ st.info("To register for this workshop, you need to login with your Google accou
 
 # Navigation to Profile Page
 if st.button("🔐 Login to Register"):
-    st.switch_page("pages/Profile.py")
+    st.switch_page("pages/1_Profile.py")
 
 # Footer note
 st.caption("Crafted with ❤️ by The Broderie Studio Workshop Team.")
