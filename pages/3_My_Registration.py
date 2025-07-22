@@ -69,7 +69,7 @@ rec, row = get_user_reg(email)
 if rec is None:
     st.info("No workshop registration found. Go to *Workshop Registration* page to register.")
     try:
-        st.page_link("pages/Workshop Registration.py", label="🧾 Go to Workshop Registration")
+        st.page_link("pages/2_Workshop Registration.py", label="🧾 Go to Workshop Registration")
     except Exception:
         pass
     st.stop()
@@ -124,6 +124,6 @@ with st.expander("✏️ Edit my registration"):
 
 # Back link
 try:
-    st.page_link("pages/Workshop Registration.py", label="⬅ Back to Workshop Registration")
+    st.page_link("pages/2_Workshop Registration.py", label="⬅ Back to Workshop Registration")
 except Exception:
     pass
