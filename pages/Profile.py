@@ -1,55 +1,188 @@
 import streamlit as st
 import pandas as pd
+import requests
 from pathlib import Path
+import secrets as pysecrets  # stdlib for secure state token
 
-# Backend Excel file
+# ------------------------------------------------------------------
+# Config
+# ------------------------------------------------------------------
+st.set_page_config(page_title="Profile / Login", page_icon="👤", layout="centered")
+
+# Load secrets
+CLIENT_ID = st.secrets["google"]["client_id"]
+CLIENT_SECRET = st.secrets["google"]["client_secret"]
+REDIRECT_URI = st.secrets["google"]["redirect_uri"]  # must exactly match what you registered
+
+# Google endpoints
+AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+SCOPES = ["openid", "email", "profile"]
+
+# Backend Excel store
 USER_FILE = Path("data/users.xlsx")
-
-# Initialize Excel if not exists
+USER_FILE.parent.mkdir(parents=True, exist_ok=True)
 if not USER_FILE.exists():
-    df_init = pd.DataFrame(columns=["Email", "Name"])
-    USER_FILE.parent.mkdir(parents=True, exist_ok=True)
-    df_init.to_excel(USER_FILE, index=False)
+    pd.DataFrame(columns=["Email", "Name", "Picture"]).to_excel(USER_FILE, index=False)
 
-# Session State for login
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.user_email = None
+# Session init
+ss = st.session_state
+if "logged_in" not in ss:
+    ss.logged_in = False
+if "user_email" not in ss:
+    ss.user_email = None
+if "oauth_state" not in ss:
+    ss.oauth_state = None
 
-st.title("👤 User Profile")
+# ------------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------------
+def load_users():
+    return pd.read_excel(USER_FILE)
 
-if not st.session_state.logged_in:
-    st.subheader("Login or Register")
+def save_user(email, name, picture_url=None):
+    df = load_users()
+    if email not in df["Email"].values:
+        new = pd.DataFrame([[email, name, picture_url]], columns=df.columns)
+        df = pd.concat([df, new], ignore_index=True)
+        df.to_excel(USER_FILE, index=False)
+    else:
+        # update name/picture if changed
+        df.loc[df["Email"] == email, ["Name", "Picture"]] = [name, picture_url]
+        df.to_excel(USER_FILE, index=False)
 
-    with st.form("login_form"):
-        email = st.text_input("Email")
-        name = st.text_input("Full Name")
-        login_btn = st.form_submit_button("Login / Register")
+def build_auth_url():
+    state_token = pysecrets.token_urlsafe(16)
+    ss.oauth_state = state_token
+    params = {
+        "client_id": CLIENT_ID,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "redirect_uri": REDIRECT_URI,
+        "state": state_token,
+        "access_type": "offline",
+        "prompt": "select_account",  # or "consent" if you always want re-consent
+    }
+    from urllib.parse import urlencode
+    return f"{AUTH_BASE}?{urlencode(params)}"
 
-        if login_btn:
-            if email:
-                df_users = pd.read_excel(USER_FILE)
-                if email not in df_users["Email"].values:
-                    # Register new user
-                    new_row = pd.DataFrame({"Email": [email], "Name": [name]})
-                    df_users = pd.concat([df_users, new_row], ignore_index=True)
-                    df_users.to_excel(USER_FILE, index=False)
-                    st.success(f"New user registered: {name}")
-                else:
-                    st.success(f"Welcome back, {name}!")
+def exchange_code_for_tokens(code):
+    data = {
+        "code": code,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+    resp = requests.post(TOKEN_URL, data=data)
+    resp.raise_for_status()
+    return resp.json()
 
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-            else:
-                st.error("Please enter a valid email.")
+def fetch_userinfo(access_token):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    resp = requests.get(USERINFO_URL, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def handle_oauth_callback():
+    """Check query params for OAuth callback; complete login if present."""
+    params = st.query_params.to_dict() if hasattr(st, "query_params") else st.experimental_get_query_params()
+    if not params:
+        return
+    # keys may be lists if using experimental_get_query_params
+    code = params.get("code")
+    state = params.get("state")
+
+    # Normalize if list
+    if isinstance(code, list): code = code[0]
+    if isinstance(state, list): state = state[0]
+
+    if code and state:
+        if ss.oauth_state and state != ss.oauth_state:
+            st.error("OAuth state mismatch. Try again.")
+            return
+        try:
+            token_data = exchange_code_for_tokens(code)
+            access_token = token_data.get("access_token")
+            if not access_token:
+                st.error("No access token returned.")
+                return
+            userinfo = fetch_userinfo(access_token)
+        except Exception as e:
+            st.error(f"OAuth error: {e}")
+            return
+
+        email = userinfo.get("email")
+        name = userinfo.get("name", email or "Unknown User")
+        picture = userinfo.get("picture")
+
+        # Persist + mark logged in
+        save_user(email, name, picture)
+        ss.logged_in = True
+        ss.user_email = email
+
+        # Clean query params (avoid re-processing if user refreshes)
+        try:
+            st.query_params.clear()  # Streamlit >=1.32
+        except Exception:
+            pass
+
+        st.success(f"Logged in as {name}")
+
+# ------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------
+st.title("👤 Profile / Login")
+
+# Handle OAuth return (if user just came back from Google)
+handle_oauth_callback()
+
+if not ss.logged_in:
+    st.info("Sign in below to access invoices and personalized features.")
+    auth_url = build_auth_url()
+    st.link_button("🔐 Sign in with Google", auth_url, use_container_width=True)
+
+    st.caption("We use Google Sign-In only to collect your name & email for your billing profile.")
+    st.stop()
+
+# Logged-in view
+df_users = load_users()
+row = df_users[df_users["Email"] == ss.user_email]
+if not row.empty:
+    user_name = row.iloc[0]["Name"]
+    user_pic = row.iloc[0]["Picture"]
 else:
-    # Profile details
-    df_users = pd.read_excel(USER_FILE)
-    user_info = df_users[df_users["Email"] == st.session_state.user_email].iloc[0]
-    st.markdown(f"### Hello, {user_info['Name']}")
+    user_name = ss.user_email
+    user_pic = None
 
-    # Logout option
-    if st.button("Logout"):
-        st.session_state.logged_in = False
+# Display profile card
+col_a, col_b = st.columns([1,3])
+with col_a:
+    if user_pic:
+        st.image(user_pic, width=96)
+    else:
+        st.write("🙂")
+with col_b:
+    st.markdown(f"### {user_name}")
+    st.markdown(f"**Email:** {ss.user_email}")
+
+st.divider()
+
+# Allow user to update display name
+with st.form("update_name"):
+    new_name = st.text_input("Update display name", value=user_name or "")
+    submitted = st.form_submit_button("Save")
+    if submitted:
+        save_user(ss.user_email, new_name, user_pic)
+        st.success("Profile updated.")
         st.experimental_rerun()
+
+# Logout
+if st.button("Logout"):
+    ss.logged_in = False
+    ss.user_email = None
+    st.experimental_rerun()
+
 
