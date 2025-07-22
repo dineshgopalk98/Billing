@@ -245,7 +245,7 @@ handle_oauth_callback()
 # ------------------------------------------------------------------
 hdr_l, hdr_r = st.columns([6, 1])
 with hdr_l:
-    st.title("👤 Profile / Login")
+    st.title("👤 Profile")
 with hdr_r:
     st.write("")
     if st.button("Logout", key="logout_button_top"):
