@@ -134,7 +134,7 @@ if existing_reg is not None:
     st.success("You are already registered.")
     # Clickable link to detail page
     try:
-        st.page_link("pages/3_My_Registration.py", label="📄 View / Update My Registration", icon="📝")
+        st.page_link("pages/3_My_Registration.py", label="View / Update My Registration", icon="📝")
     except Exception:
         # Fallback plain link (user may need to click sidebar)
         st.markdown("**Go to:** *My_Registration* page in sidebar to view/update your registration.*")
