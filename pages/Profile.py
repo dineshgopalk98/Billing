@@ -244,7 +244,11 @@ with colB:
     st.markdown(f"### {user_name}")
     st.markdown(f"**Email:** {st.session_state.user_email}")
 
+# Add a clickable link to Workshop Registration
+st.markdown("### [📝 Workshop Registration](pages/Workshop Registration.py)")
+
 st.divider()
+
 
 # Update display name form
 with st.form("update_name"):
