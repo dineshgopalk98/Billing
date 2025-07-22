@@ -162,7 +162,7 @@ else:
 st.divider()
 
 # Prefill from latest reg (if any)
-pref_name = existing_reg["Name"] if existing_reg is not None else user_name
+pref_name = latest_reg["Name"] if existing_reg is not None else user_name
 pref_contact = latest_reg["Contact"] if latest_reg is not None else ""
 pref_shirt = latest_reg["ShirtNeeded"] if latest_reg is not None else "No"
 pref_equip = latest_reg["EquipmentChoice"] if latest_reg is not None else "Return"
