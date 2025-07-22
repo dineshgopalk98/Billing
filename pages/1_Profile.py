@@ -275,7 +275,7 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB, spacer1 = st.columns([1, 3, 4])
+colA, colB, spacer1 = st.columns([1, 4, 4])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
@@ -289,6 +289,14 @@ with colB:
     )
 with spacer1:
     st.write("")
+    with st.popover("✏ Edit Profile Details"):
+        new_name = st.text_input("Name", value=user_name, key="edit_name")
+        new_contact = st.text_input("Contact", value=user_contact, key="edit_contact")
+        submitted = st.form_submit_button("Update Changes")
+        if submitted:
+            save_user(st.session_state.user_email, new_name, new_contact, user_pic)
+            st.success("Profile updated.")
+            st.rerun()
 
 # Navigation to Workshop Registration (internal page)
 # Use st.page_link if available; fallback markdown
@@ -298,13 +306,7 @@ st.divider()
 # ------------------------------------------------------------------
 # NAME UPDATE FORM
 # ------------------------------------------------------------------
-with st.form("update_name"):
-    new_name = st.text_input("Update display name", value=user_name or "")
-    submitted = st.form_submit_button("Save")
-    if submitted:
-        save_user(st.session_state.user_email, new_name, user_pic)
-        st.success("Profile updated.")
-        st.rerun()
+
 
 st.page_link("pages/2_Workshop Registration.py", label="Go to Workshop Registration", icon="📝")
 
