@@ -243,7 +243,7 @@ handle_oauth_callback()
 # ------------------------------------------------------------------
 # HEADER ROW WITH LOGOUT BUTTON (top-right)
 # ------------------------------------------------------------------
-hdr_l, hdr_r = st.columns([6, 1])
+hdr_l, hdr_r = st.columns([5,3,0.5])
 with hdr_l:
     st.title("👤 Profile")
 with hdr_r:
@@ -277,14 +277,13 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB, spacer1, spacer2 = st.columns([1,3,3,1])
+colA, colB, spacer1, spacer2 = st.columns([1,3,4,0.5])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
     else:
         st.write("🙂")
 # Compact profile display row ---------------------------------------
-info_col, edit_col = st.columns([10, 1])  # wide info, tiny edit icon on right
 
 with colB:
     # Small font name + email
