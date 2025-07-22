@@ -1,34 +1,43 @@
 import streamlit as st
-import pandas as pd
 
-# Page Config
-st.set_page_config(page_title="Billing Dashboard", page_icon="📊", layout="wide")
+# ---------------------------
+# Page Configuration
+# ---------------------------
+st.set_page_config(page_title="Embroidery Workshop", page_icon="🧵", layout="centered")
 
-# Title
-st.title("📊 Billing Dashboard")
+# Hide menu & footer
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
 
-# Login status
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# ---------------------------
+# Landing Page Content
+# ---------------------------
+st.title("🧵 Welcome to the Embroidery Workshop!")
+st.markdown(
+    """
+    ### Discover the art of embroidery!
+    Join our **exclusive embroidery workshop** where you’ll learn:
+    - The basics of hand embroidery techniques.
+    - How to use traditional and modern patterns.
+    - Creating your own beautiful design during the session.
 
-# Display login info
-if not st.session_state.logged_in:
-    st.warning("🔑 Please log in from the **Profile** page to access detailed features like Invoices.")
+    **Date:** 15th August 2025  
+    **Venue:** Craft Studio, Bangalore  
+    **Registration Fee:** ₹500 (includes materials)
+    """
+)
 
-# Example Stats
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Total Invoices", 125)
-with col2:
-    st.metric("Revenue (₹)", "₹ 1,25,000")
-with col3:
-    st.metric("Outstanding (₹)", "₹ 25,000")
+st.info("To register for this workshop, you need to login with your Google account.")
 
-# Example Chart
-st.subheader("Monthly Revenue Trend")
-months = ["Jan", "Feb", "Mar", "Apr", "May"]
-revenue = [20000, 25000, 22000, 30000, 28000]
-df_chart = pd.DataFrame({"Month": months, "Revenue": revenue})
-st.area_chart(df_chart.set_index("Month"))
+# Navigation to Profile Page
+if st.button("🔐 Login to Register"):
+    st.switch_page("pages/Profile.py")
 
-st.caption("Use the sidebar to go to **Profile** and log in for more details.")
+# Footer note
+st.caption("Crafted with ❤️ by the Embroidery Workshop Team.")
