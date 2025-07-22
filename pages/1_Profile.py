@@ -241,7 +241,7 @@ handle_oauth_callback()
 # ------------------------------------------------------------------
 # HEADER ROW WITH LOGOUT BUTTON (top-right)
 # ------------------------------------------------------------------
-hdr_l, hdr_r = st.columns([8, 1])
+hdr_l, hdr_r = st.columns([6, 1])
 with hdr_l:
     st.title("👤 Profile / Login")
 with hdr_r:
