@@ -5,10 +5,10 @@ from google.oauth2 import service_account
 from datetime import datetime
 
 REG_SHEET_NAME = "Workshop_Registrations"
-EQUIP_BUY_AMOUNT = 200  # keep consistent w/ Invoice.py
+EQUIP_BUY_AMOUNT = 200  # Keep consistent with Invoice.py
 
 # ------------------------------------------------------------------
-# GSpread helpers
+# GSpread Helpers
 # ------------------------------------------------------------------
 def get_gspread_client():
     creds = service_account.Credentials.from_service_account_info(
@@ -22,7 +22,7 @@ def get_gspread_client():
 
 def get_sheet():
     client = get_gspread_client()
-    sh = client.open(REG_SHEET_NAME)  # will error if not shared
+    sh = client.open(REG_SHEET_NAME)  # Will error if not shared
     return sh.sheet1
 
 def load_reg_df():
@@ -41,7 +41,7 @@ def get_user_reg(email):
     if df.empty or "Email" not in df.columns or email not in df["Email"].values:
         return None, None
     rec = df[df["Email"] == email].iloc[0]
-    # find row
+    # Find row
     sheet = get_sheet()
     cell = sheet.find(email)
     return rec, cell.row
@@ -53,7 +53,7 @@ def update_reg(row, name, email, contact, shirt, equip):
     sheet.update(f"A{row}:G{row}", [[name, email, contact, shirt, equip, pending, ts]])
 
 # ------------------------------------------------------------------
-# PAGE
+# Page UI
 # ------------------------------------------------------------------
 st.set_page_config(page_title="My Registration", page_icon="📄", layout="centered")
 st.title("📄 My Workshop Registration")
@@ -74,33 +74,52 @@ if rec is None:
         pass
     st.stop()
 
-# Display card
-st.markdown(f"### {rec['Name']}")
-st.markdown(f"**Email:** {rec['Email']}")
-st.markdown(f"**Contact:** {rec['Contact']}")
-st.markdown(f"**Shirt Needed:** {rec['ShirtNeeded']}")
-st.markdown(f"**Equipment Choice:** {rec['EquipmentChoice']}")
-st.markdown(f"**Pending Amount:** ₹{rec['PendingAmount']}")
+# ------------------------------------------------------------
+# Modern Card Layout
+# ------------------------------------------------------------
+with st.container():
+    st.markdown(
+        f"""
+        <div style="
+            background-color: #f9f9f9;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        ">
+        <h3 style="color: #333; margin-bottom: 10px;">{rec['Name']}</h3>
+        <p><b>Email:</b> {rec['Email']}</p>
+        <p><b>Contact:</b> {rec['Contact']}</p>
+        <p><b>Shirt Needed:</b> {rec['ShirtNeeded']}</p>
+        <p><b>Equipment Choice:</b> {rec['EquipmentChoice']}</p>
+        <p><b>Pending Amount:</b> ₹{rec['PendingAmount']}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-st.divider()
-
-# Update toggle
-if st.toggle("Edit my registration"):
+# Edit Registration
+with st.expander("✏️ Edit my registration"):
     with st.form("edit_reg"):
         contact = st.text_input("Contact Number", value=str(rec["Contact"]))
-        shirt = st.selectbox("Shirt Needed?", ["Yes", "No"], index=(0 if rec["ShirtNeeded"] == "Yes" else 1))
-        equip = st.selectbox("Equipments Return or Buy?", ["Return", "Buy"],
-                             index=(1 if rec["EquipmentChoice"] == "Buy" else 0))
+        shirt = st.selectbox(
+            "Shirt Needed?",
+            ["Yes", "No"],
+            index=(0 if rec["ShirtNeeded"] == "Yes" else 1),
+        )
+        equip = st.selectbox(
+            "Equipments Return or Buy?",
+            ["Return", "Buy"],
+            index=(1 if rec["EquipmentChoice"] == "Buy" else 0),
+        )
 
         if equip == "Buy":
-            st.warning(f"You will need to pay ₹{EQUIP_BUY_AMOUNT} during the event.")
-        else:
-            st.caption("Return equipment at end of workshop; no charges.")
+            st.toast(f"💰 You will need to pay ₹{EQUIP_BUY_AMOUNT} during the event.", icon="⚠")
 
-        save_btn = st.form_submit_button("Save Changes")
+        save_btn = st.form_submit_button("💾 Save Changes", use_container_width=True)
         if save_btn:
             update_reg(row, rec["Name"], rec["Email"], contact.strip(), shirt, equip)
-            st.success("Registration updated.")
+            st.success("✅ Registration updated successfully!")
             st.rerun()
 
 # Back link
