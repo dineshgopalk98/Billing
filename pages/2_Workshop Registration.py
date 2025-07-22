@@ -170,6 +170,7 @@ pref_equip = latest_reg["EquipmentChoice"] if latest_reg is not None else "Retur
 # FORM
 # ------------------------------------------------------------------
 with st.form("registration_form"):
+    name_input = st.text_input("Full Name", value=pref_name)
     st.write(f"**Name:** {user_name}")
     st.write(f"**Email:** {user_email}")
 
@@ -192,7 +193,7 @@ with st.form("registration_form"):
             if reg_exists_exact(user_name, user_email, contact, shirt_needed, equipment_choice):
                 st.error("User with same details already exists.")
             else:
-                append_registration(user_name, user_email, contact.strip(), shirt_needed, equipment_choice)
+                upsert_registration(name_input.strip(), user_email, contact.strip(), shirt_needed, equipment_choice)
                 st.success("Registration saved!")
                 if equipment_choice == "Buy":
                     st.info(f"Please keep ₹{EQUIP_BUY_AMOUNT} ready during the event.")
