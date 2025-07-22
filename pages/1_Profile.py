@@ -11,7 +11,7 @@ import io
 # ------------------------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------------------------
-st.set_page_config(page_title="Profile / Login", page_icon="👤", layout="centered")
+st.set_page_config(page_title="Profile", page_icon="👤", layout="centered")
 
 # ------------------------------------------------------------------
 # CONFIG / SECRETS
