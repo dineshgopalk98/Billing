@@ -8,7 +8,19 @@ from google.oauth2.service_account import Credentials
 # ------------------------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------------------------
-st.set_page_config(page_title="Profile / Login", page_icon="👤", layout="centered")
+
+# Create two columns for title and logout button
+col1, col2 = st.columns([6, 1])  # Adjust ratio to align
+with col1:
+    st.title("👤 Profile / Login")
+
+with col2:
+    st.write("")  # For spacing
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user_email = None
+        st.rerun()
+
 
 # Optional debug toggle (sidebar)
 DEBUG = st.sidebar.checkbox("Debug mode", False)
