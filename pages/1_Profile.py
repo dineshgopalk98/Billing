@@ -229,7 +229,7 @@ handle_oauth_callback()
 
 # Not logged in yet?
 if not st.session_state.logged_in:
-    st.info("Sign in below to access invoices and personalized features.")
+    st.info("Sign in below to Register for the Workshop!")
     auth_url = build_auth_url()
     st.link_button("🔐 Sign in with Google", auth_url, use_container_width=True)
     st.stop()
