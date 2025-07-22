@@ -300,7 +300,7 @@ with spacer1:
 with spacer2:
     # Tiny pencil popover trigger
     with st.popover("✏", use_container_width=True):
-        st.caption("Edit profile")  # small heading in the popover
+        st.markdown("Edit profile")  # small heading in the popover
 
         # Editable name
         new_name = st.text_input(
