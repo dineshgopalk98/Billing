@@ -245,6 +245,7 @@ hdr_l, hdr_r = st.columns([6, 1])
 with hdr_l:
     st.title("👤 Profile / Login")
 with hdr_r:
+    st.write("")
     if st.button("Logout", key="logout_button_top"):
         st.session_state.logged_in = False
         st.session_state.user_email = None
@@ -274,7 +275,7 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB = st.columns([1, 1])
+colA, colB, spacer1 = st.columns([1, 1, 6])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
@@ -283,6 +284,8 @@ with colA:
 with colB:
     st.markdown(f"### {user_name}")
     st.markdown(f"**Email:** {st.session_state.user_email}")
+with spacer1:
+    st.write("")
 
 # Navigation to Workshop Registration (internal page)
 # Use st.page_link if available; fallback markdown
