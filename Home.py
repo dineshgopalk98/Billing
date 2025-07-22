@@ -18,18 +18,18 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 # ---------------------------
 # Landing Page Content
 # ---------------------------
-st.title("🧵 Welcome to the Embroidery Workshop!")
+st.title("🧵 Welcome to Registration page of the Embroidery Workshop!")
 st.markdown(
     """
     ### Discover the art of embroidery!
     Join our **exclusive embroidery workshop** where you’ll learn:
     - The basics of hand embroidery techniques.
-    - How to use traditional and modern patterns.
-    - Creating your own beautiful design during the session.
+    - How to stitch patters on any fabric of your choice.
+    - Creating your own beautiful design during the session on a T-shirt.
 
-    **Date:** 15th August 2025  
-    **Venue:** Craft Studio, Bangalore  
-    **Registration Fee:** ₹500 (includes materials)
+    **Date:** 23rd August 2025  
+    **Venue:** Ikigai, Velachery, Chennai  
+    **Registration Fee:** ₹800 (includes materials)
     """
 )
 
@@ -40,4 +40,4 @@ if st.button("🔐 Login to Register"):
     st.switch_page("pages/Profile.py")
 
 # Footer note
-st.caption("Crafted with ❤️ by the Embroidery Workshop Team.")
+st.caption("Crafted with ❤️ by The Broderie Studio Workshop Team.")
