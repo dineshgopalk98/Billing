@@ -243,7 +243,7 @@ handle_oauth_callback()
 # ------------------------------------------------------------------
 # HEADER ROW WITH LOGOUT BUTTON (top-right)
 # ------------------------------------------------------------------
-hdr_l, spacer, hdr_r = st.columns([5,3,1])
+hdr_l, spacer, hdr_r = st.columns([5,2,1])
 with hdr_l:
     st.title("👤 Profile")
 with spacer:
@@ -279,7 +279,7 @@ else:
     user_pic = None
 
 # Profile card
-colA, colB, spacer1, spacer2 = st.columns([1,4,3,1])
+colA, colB, spacer1, spacer2 = st.columns([1,4,2,1])
 with colA:
     if user_pic:
         st.image(user_pic, width=100)
