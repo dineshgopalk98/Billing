@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from google.oauth2 import service_account
+import gspread
+
 
 
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
