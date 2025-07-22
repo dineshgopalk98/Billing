@@ -309,7 +309,7 @@ with spacer2:
             key="profile_edit_name", 
             label_visibility="collapsed"  # hide full label
         )
-        st.caption("Name")  # lightweight label substitute
+  # lightweight label substitute
 
         # Editable contact (if you track contact in session or sheet)
         new_contact = st.text_input(
@@ -318,7 +318,7 @@ with spacer2:
             key="profile_edit_contact", 
             label_visibility="collapsed"
         )
-        st.caption("Contact")
+
 
         # Optional: upload profile pic (jpeg/png)
         new_pic_file = st.file_uploader(
@@ -327,7 +327,7 @@ with spacer2:
             key="profile_edit_pic", 
             label_visibility="collapsed"
         )
-        st.caption("Profile Pic (jpg/png)")
+
 
         save_clicked = st.button("Save", key="profile_edit_save_btn", use_container_width=True)
         if save_clicked:
