@@ -255,7 +255,7 @@ with hdr_r:
 # NOT LOGGED IN? SHOW LOGIN BUTTON
 # ------------------------------------------------------------------
 if not st.session_state.logged_in:
-    st.info("Sign in below to access workshop registration and features.")
+    st.info("Sign in below to access workshop registration!!")
     auth_url = build_auth_url()
     st.link_button("🔐 Sign in with Google", auth_url, use_container_width=True)
     st.stop()
