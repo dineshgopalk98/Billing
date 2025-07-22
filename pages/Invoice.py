@@ -157,8 +157,6 @@ with st.form("registration_form"):
 
     contact = st.text_input("Contact Number", value=str(pref_contact) if pref_contact else "")
     shirt_needed = st.selectbox("Shirt Needed?", ["Yes", "No"], index=(0 if pref_shirt == "Yes" else 1))
-    equipment_choice = st.selectbox("Equipments Return or Buy?", ["Return", "Buy"],
-                                    index=(1 if pref_equip == "Buy" else 0))
 
     equipment = st.selectbox("Equipments return or buy", ["Return", "Buy"])
 
