@@ -289,10 +289,6 @@ with spacer1:
 
 # Navigation to Workshop Registration (internal page)
 # Use st.page_link if available; fallback markdown
-try:
-    st.page_link("pages/2_Workshop_Registration.py", label="📝 Workshop Registration")
-except Exception:
-    st.markdown("### [📝 Workshop Registration](pages/2_Workshop_Registration.py)")
 
 st.divider()
 
@@ -306,3 +302,8 @@ with st.form("update_name"):
         save_user(st.session_state.user_email, new_name, user_pic)
         st.success("Profile updated.")
         st.rerun()
+
+try:
+    st.page_link("pages/2_Workshop_Registration.py", label="📝 Workshop Registration")
+except Exception:
+    st.markdown("### [📝 Workshop Registration](pages/2_Workshop_Registration.py)")
