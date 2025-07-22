@@ -5,17 +5,17 @@ secondaryBackgroundColor = "#F0F2F6"
 textColor = "#262730"
 font = "sans serif"
 
-[server]
-enableCORS = false
-enableXsrfProtection = true
-headless = true
-port = 8501
-
 [browser]
 gatherUsageStats = false
-
-[server]
-runOnSave = false
+  # Hides "View source", "Rerun", "Settings"
 
 [client]
-toolbarMode = "minimal"   # Hides "View source", "Rerun", "Settings"
+toolbarMode = "minimal"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+runOnSave = false
+
+
