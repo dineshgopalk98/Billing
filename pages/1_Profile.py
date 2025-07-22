@@ -283,31 +283,67 @@ with colA:
         st.image(user_pic, width=100)
     else:
         st.write("🙂")
+# Compact profile display row ---------------------------------------
+info_col, edit_col = st.columns([10, 1])  # wide info, tiny edit icon on right
+
 with colB:
+    # Small font name + email
     st.markdown(
-        f"<p style='font-size:24px; margin-bottom:0;'>{user_name}</p>"
-        f"<p style='margin-top:0;'><b>Email:</b> {st.session_state.user_email}</p>",
+        f"<p style='font-size:16px; font-weight:600; margin-bottom:2px;'>{user_name}</p>"
+        f"<p style='font-size:13px; color:gray; margin-top:0;'>{st.session_state.user_email}</p>",
         unsafe_allow_html=True
     )
+
 with spacer1:
-    st.write("")
-    with st.popover("Edit Profile Details"):
-        new_name = st.text_input("Name", value=user_name, key="edit_name")
-        uploaded_pic = st.file_uploader("Upload Profile Picture", type=["jpg", "jpeg", "png"])
+    # Tiny pencil popover trigger
+    with st.popover("✏", use_container_width=True):
+        st.caption("Edit profile")  # small heading in the popover
 
-        if uploaded_pic:
-            image = Image.open(uploaded_pic)
-            # Convert image to bytes for session storage
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format="PNG")
-            st.session_state.user_pic = img_byte_arr.getvalue()
-            st.image(st.session_state.user_pic, width=100, caption="Preview")
-    
-        if st.button("Save Changes", key="save_changes"):
+        # Editable name
+        new_name = st.text_input(
+            "Name", 
+            value=user_name, 
+            key="profile_edit_name", 
+            label_visibility="collapsed"  # hide full label
+        )
+        st.caption("Name")  # lightweight label substitute
+
+        # Editable contact (if you track contact in session or sheet)
+        new_contact = st.text_input(
+            "Contact", 
+            value=st.session_state.get("user_contact", ""), 
+            key="profile_edit_contact", 
+            label_visibility="collapsed"
+        )
+        st.caption("Contact")
+
+        # Optional: upload profile pic (jpeg/png)
+        new_pic_file = st.file_uploader(
+            "Profile Pic", 
+            type=["jpg", "jpeg", "png"], 
+            key="profile_edit_pic", 
+            label_visibility="collapsed"
+        )
+        st.caption("Profile Pic (jpg/png)")
+
+        save_clicked = st.button("Save", key="profile_edit_save_btn", use_container_width=True)
+        if save_clicked:
+            # Handle picture -> bytes -> maybe upload/store URL (see below)
+            pic_url = user_pic  # default to existing
+            if new_pic_file is not None:
+                # For now: display only (no persistence to remote store yet)
+                img_bytes = new_pic_file.read()
+                st.session_state.user_pic_bytes = img_bytes
+                # If storing to Google Drive or S3, do it here and set pic_url to that location.
+                pic_url = None  # or updated location
+
+            # Persist changes: update sheet for name; contact not yet in Billing_Users schema
+            save_user(st.session_state.user_email, new_name, pic_url)
             st.session_state.user_name = new_name
-            st.success("Profile updated successfully!")
-            st.rerun()
+            st.session_state.user_contact = new_contact  # session only unless you persist
 
+            st.success("Profile updated.")
+            st.rerun()
 # Navigation to Workshop Registration (internal page)
 # Use st.page_link if available; fallback markdown
 
