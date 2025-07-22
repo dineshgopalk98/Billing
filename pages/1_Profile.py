@@ -245,7 +245,7 @@ with colB:
     st.markdown(f"**Email:** {st.session_state.user_email}")
 
 # Add a clickable link to Workshop Registration
-st.link_button("📝 Go to Workshop Registration", "pages/2_Workshop Registration.py", use_container_width=True)
+st.page_link("pages/Workshop Registration.py", label="📝 Go to Workshop Registration", icon="📝")
 
 
 st.divider()
