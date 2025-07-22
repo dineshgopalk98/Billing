@@ -272,9 +272,3 @@ with st.form("update_name"):
 
 st.page_link("pages/2_Workshop Registration.py", label="Go to Workshop Registration", icon="📝")
 
-
-# Logout button
-if st.button("Logout"):
-    st.session_state.logged_in = False
-    st.session_state.user_email = None
-    st.rerun()
