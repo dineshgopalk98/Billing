@@ -6,51 +6,104 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.error("🔐 Please log in from the Profile page to access Invoices.")
     st.stop()
 
-st.title("🧾 Invoice Management")
+# -------------------------------
+# Google Sheet Setup
+# -------------------------------
+REG_SHEET_NAME = "Workshop_Registrations"
+USER_SHEET_NAME = "Billing_Users"
 
-st.set_page_config(page_title="Create Invoice", page_icon="🧾", layout="wide")
-st.title("🧾 :rainbow[Invoice Generator]")
+# Authenticate Google Sheets
+def get_gspread_client():
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    )
+    return gspread.authorize(credentials)
 
-# Customer Info
-st.subheader("Customer Information")
-col1, col2 = st.columns(2)
-with col1:
-    customer_name = st.text_input("Customer Name")
-    customer_email = st.text_input("Customer Email")
-with col2:
-    invoice_date = st.date_input("Invoice Date", datetime.today())
-    due_date = st.date_input("Due Date", datetime.today())
+def get_sheet(name):
+    client = get_gspread_client()
+    try:
+        return client.open(name).sheet1
+    except gspread.SpreadsheetNotFound:
+        st.error(f"Google Sheet '{name}' not found.")
+        return None
 
-# Item Details
-st.subheader("Add Items")
-items = []
-item_count = st.number_input("Number of items", min_value=1, value=1)
-for i in range(item_count):
-    with st.expander(f"Item {i+1}"):
-        item = st.text_input(f"Item {i+1} Name", key=f"name_{i}")
-        qty = st.number_input(f"Quantity {i+1}", min_value=1, value=1, key=f"qty_{i}")
-        price = st.number_input(f"Price {i+1}", min_value=0.0, value=0.0, key=f"price_{i}")
-        total = qty * price
-        items.append({"Item": item, "Quantity": qty, "Unit Price": price, "Total": total})
+def load_registrations():
+    sheet = get_sheet(REG_SHEET_NAME)
+    if sheet:
+        records = sheet.get_all_records()
+        return pd.DataFrame(records)
+    return pd.DataFrame()
 
-df_items = pd.DataFrame(items)
+def save_registration(data):
+    sheet = get_sheet(REG_SHEET_NAME)
+    if sheet:
+        sheet.append_row(data)
 
-# Invoice Summary
-st.subheader("Summary")
-tax = st.slider("Tax (%)", 0, 28, 18)
-discount = st.number_input("Discount", min_value=0.0, value=0.0)
-subtotal = df_items["Total"].sum()
-tax_amount = subtotal * (tax / 100)
-grand_total = subtotal + tax_amount - discount
+def get_user_details(email):
+    sheet = get_sheet(USER_SHEET_NAME)
+    if sheet:
+        df = pd.DataFrame(sheet.get_all_records())
+        if email in df["Email"].values:
+            return df[df["Email"] == email].iloc[0]["Name"]
+    return "Unknown User"
 
-st.metric("Grand Total", f"₹ {grand_total:,.2f}")
+# -------------------------------
+# UI Components
+# -------------------------------
+st.set_page_config(page_title="Workshop Registration", page_icon="🧾", layout="centered")
+st.title("🧾 Workshop Registration")
 
-# Generate Invoice
-if st.button("Generate Invoice"):
-    st.success("Invoice generated successfully!")
-    st.balloons()
-    st.dataframe(df_items)
-    csv = df_items.to_csv(index=False).encode("utf-8")
-    st.download_button("Download Invoice CSV", csv, "invoice.csv", "text/csv")
+# Ensure user is logged in
+if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.warning("Please log in from the Profile page before registering.")
+    st.stop()
+
+# Fetch user details
+user_email = st.session_state.user_email
+user_name = get_user_details(user_email)
+
+# -------------------------------
+# View My Registration
+# -------------------------------
+st.subheader("📄 My Current Registration")
+df_reg = load_registrations()
+
+if not df_reg.empty and user_email in df_reg["Email"].values:
+    user_reg = df_reg[df_reg["Email"] == user_email]
+    st.success("You have already registered for this workshop.")
+    st.table(user_reg)
+else:
+    st.info("You have not registered yet.")
+
+st.divider()
+
+# -------------------------------
+# Registration Form
+# -------------------------------
+with st.form("registration_form"):
+    st.write(f"**Name:** {user_name}")
+    st.write(f"**Email:** {user_email}")
+
+    contact = st.text_input("Contact Number")
+    shirt_needed = st.selectbox("Shirt Needed?", ["Yes", "No"])
+    equipment_choice = st.selectbox("Equipments Return or Buy?", ["Return", "Buy"])
+
+    if equipment_choice == "Buy":
+        st.warning("You will need to pay ₹200 during the event for the equipment.")
+
+    submitted = st.form_submit_button("Register Now")
+
+    if submitted:
+        if not contact:
+            st.error("Please enter your contact number.")
+        else:
+            data = [user_name, user_email, contact, shirt_needed, equipment_choice, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+            save_registration(data)
+            st.success("You have successfully registered for the workshop!")
+            if equipment_choice == "Buy":
+                st.info("Please keep ₹200 ready during the event.")
+            st.rerun()
+
 
 
