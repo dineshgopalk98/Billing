@@ -306,8 +306,7 @@ with spacer2:
         new_name = st.text_input(
             "Name", 
             value=user_name, 
-            key="profile_edit_name", 
-            label_visibility="collapsed"  # hide full label
+            key="profile_edit_name"  # hide full label
         )
   # lightweight label substitute
 
@@ -315,8 +314,7 @@ with spacer2:
         new_contact = st.text_input(
             "Contact", 
             value=st.session_state.get("user_contact", ""), 
-            key="profile_edit_contact", 
-            label_visibility="collapsed"
+            key="profile_edit_contact"
         )
 
 
@@ -324,9 +322,7 @@ with spacer2:
         new_pic_file = st.file_uploader(
             "Profile Pic", 
             type=["jpg", "jpeg", "png"], 
-            key="profile_edit_pic", 
-            label_visibility="collapsed"
-        )
+            key="profile_edit_pic"        )
 
 
         save_clicked = st.button("Save", key="profile_edit_save_btn", use_container_width=True)
