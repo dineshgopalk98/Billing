@@ -282,8 +282,11 @@ with colA:
     else:
         st.write("🙂")
 with colB:
-    st.markdown(f"### {user_name}")
-    st.markdown(f"**Email:** {st.session_state.user_email}")
+    st.markdown(
+        f"<p style='font-size:24px; margin-bottom:0;'>{user_name}</p>"
+        f"<p style='margin-top:0;'><b>Email:</b> {st.session_state.user_email}</p>",
+        unsafe_allow_html=True
+    )
 with spacer1:
     st.write("")
 
